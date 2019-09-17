@@ -21,11 +21,12 @@
 ;	->number y
 
 ;4.- Obstaculos
+;	->number identificador (3)
 ;	->number x
 ;	->number y
 
 ;Estos TDAs seran almacenados en una lista, el cual sera la representacion del escenario, los primeros elementos de esta lista seran
-;las dimensiones del escenario, luego el piso o obstaculos y finalmente los gusanos y proyectiles.
+;las dimensiones del escenario, luego el suelo, obstaculos y finalmente los gusanos y proyectiles.
 
 
 ;----------------------------------------CONSTRUCTOR-----------------------------------------------------------
@@ -39,7 +40,7 @@
            (number? idGusano)
            (number? posX)
            (number? posY)
-           (>= id 0)
+           (= id 1)
            (>= idGusano 0)
            (>= posX 0)
            (>= posY 0)
@@ -58,7 +59,7 @@
            (number? velocidad)
            (number? posX)
            (number? posY)
-           (>= id 0)
+           (= id 2)
            (>= angulo -90)
            (<= angulo 90)
            (>= velocidad 0)
@@ -73,13 +74,15 @@
 ;Funcion que entrega una lista con la informacion de un obstaculo del juego
 ;Entrada: Posicion X, posicionY
 ;Salida: Lista con la informacion de un obstaculo
-(define (obstaculo posX posY)
-  (if (and (number? posX)
+(define (obstaculo id posX posY)
+  (if (and (number? id)
+           (number? posX)
            (number? posY)
+           (= id 3)
            (>= posX 0)
            (>= posY 0)
        )
-      (list posX posY)
+      (list id posX posY)
       null
    )
  )
@@ -118,8 +121,8 @@
 ;Salida: True o False 
 (define (obstaculo? listObst)
   (if (and (list? listObst)
-           (= (length listObst) 2)
-           (obstaculo (car listObst) (car (cdr listObst)))
+           (= (length listObst) 3)
+           (obstaculo (car listObst) (car (cdr listObst)) (car (cdr (cdr listObst))))
        )
       #t
       #f
@@ -220,12 +223,22 @@
  )
 
 ;OBSTACULO
+;Funcion que retorna la id de una lista obstaculo, en caso contrario entrega una lista vacia
+;Entrada: Lista
+;Salida: Id de la lista obstaculo o una lista vacia
+(define (obstaculo_getId listObst)
+  (if (obstaculo? listObst)
+      (car listObst)
+      null
+   )
+ )
+
 ;Funcion que retorna la posicion X de una lista obstaculo, en caso contrario entrega una lista vacia
 ;Entrada: Lista
 ;Salida: Poscion X de la lista obstaculo o una lista vacia
 (define (obstaculo_getPosX listObst)
   (if (obstaculo? listObst)
-      (car listObst)
+      (car (cdr listObst))
       null
    )
  )
@@ -235,7 +248,7 @@
 ;Salida: Poscion Y de la lista obstaculo o una lista vacia
 (define (obstaculo_getPosY listObst)
   (if (obstaculo? listObst)
-      (car (cdr listObst))
+      (car (cdr (cdr listObst)))
       null
    )
  )
@@ -248,7 +261,7 @@
 (define (gusano_setId listGusano id)
   (if (and (gusano? listGusano)
            (number? id)
-           (>= id 0)
+           (= id 1)
        )
       (list id (gusano_getIdGusano listGusano) (gusano_getPosX listGusano) (gusano_getPosY listGusano))
       null
@@ -301,7 +314,7 @@
 (define (disparo_setId listDisparo id)
   (if (and (disparo? listDisparo)
            (number? id)
-           (>= id 0)
+           (= id 2)
        )
       (list id (disparo_getAng listDisparo) (disparo_getVel listDisparo) (disparo_getPosX listDisparo)
             (disparo_getPosY listDisparo))
@@ -367,6 +380,18 @@
  )
 
 ;OBSTACULO
+;Funcion que retorna un nueva lista obstaculo con la id cambiada
+;Entrada: Lista, id a cambiar
+;Salida: Lista obstaculo o lista vacia
+(define (obstaculo_setId listObst id)
+  (if (and (obstaculo? listObst)
+           (number? id)
+           (= id 3)
+       )
+      (list id (obstaculo_getPosX listObst) (obstaculo_getPosY listObst))
+      null
+   )
+ )
 ;Funcion que retorna un nueva lista obstaculo con la posicion X cambiada
 ;Entrada: Lista, posicion X a cambiar
 ;Salida: Lista obstaculo o lista vacia
@@ -375,7 +400,7 @@
            (number? posX)
            (>= posX 0)
        )
-      (list posX (obstaculo_getPosY listObst))
+      (list (obstaculo_getId listObst) posX (obstaculo_getPosY listObst))
       null
    )
  )
@@ -388,7 +413,50 @@
            (number? posY)
            (>= posY 0)
        )
-      (list (obstaculo_getPosX listObst) posY)
+      (list (obstaculo_getId listObst) (obstaculo_getPosX listObst) posY)
       null
    )
  )
+
+;-----------------------------------------------------------------------------------------------
+;---------------------------------FUNCIONES REQUERIDAS------------------------------------------
+;-----------------------------------------------------------------------------------------------
+
+
+;Función que retorna un escenario válido de tamaño NxM, si no es factible crear el escenario retorna nulo
+;Entrada: Tamaño eje X, tamaño eje Y, cantidad de enemigos, dificultad del escenario, semilla para generar
+;         valores pseudoaleatorios
+;Salida: Lista que representa el escenario del juego
+(define (createScene N M E D seed)
+  (crearSuelo N M)
+  null
+)
+
+;Funcion de encapsulamiento para crear el suelo
+;Entrada: Tamaño eje X y tamaño eje Y
+;Salida: Lista con las dimensiones del escenario y las coordenadas del suelo
+(define (crearSuelo N M)
+  (if (and (> N 0) (> M 0))
+      (crearSueloRL N M 0 0)
+      null
+   )
+)
+
+;Funcion que crea una lista con las dimensiones del escenario y las coordenadas del suelo
+;Entrada: Tamaño eje X, tamaño eje Y, auxiliar para X y auxiliar para Y
+;Salida: Lista con las dimensiones del escenario y las coordenadas del suelo
+(define (crearSueloRL N M auxN auxM)
+  (if (= auxN 0)
+      (cons N (cons M (crearSueloRL N M (+ auxN 1) (+ auxM 1))))
+      (if (and (> auxM 0) (< auxM M) (<= auxN N))
+          (cons (list auxN auxM) (crearSueloRL N M auxN (+ auxM 1)))
+          (if (and (= auxM M) (<= auxN N))
+              (cons (list auxN auxM) (crearSueloRL N M (+ auxN 1) 1))
+              (if (and (<= auxN (/ N 3)) (<= auxN N))
+                  (cons (list auxN M) (crearSueloRL N M (+ auxN 1) (+ auxM 1)))
+                  '()
+               )
+          )
+       )
+   )
+)
