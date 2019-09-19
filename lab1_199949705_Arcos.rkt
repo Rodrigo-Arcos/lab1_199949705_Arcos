@@ -427,7 +427,9 @@
 (define a 1103515245)
 (define c 12345)
 (define m 2147483648)
-;Esta función random tuma un xn y obtiene el xn+1 de la secuencia de números aleatorios.
+;Esta función random que genera un numero aleatorio
+;Entrada: Semilla (seed)
+;Salida: Numero entero
 (define myRandom
   (lambda
     (xn)
@@ -436,10 +438,9 @@
 )
 ;Cada vez que pedimos un random, debemos pasar como argumento el random anterior.
 ;Acá un ejemplo que permite generar una lista de números aleatorios.
-;Parámetros:
-;* "cuantos" indica el largo de la lista a generar.
-;* "xActual" valor actual del random, se pasa en cada nivel de recursión de forma actualizada
-;* "maximo" Los números generados van desde 0 hasta maximo-1
+;Entrada: largo de la lista a generar, valor actual del random, se pasa en cada nivel de recursión de forma actualizada,
+;         números maximo generados van desde 0 hasta maximo-1 y lista en donde se guardaran los numeros aleatorios
+;Salida: Lista de numeros enteros
 
 (define (getListaRandomR cuantos xActual maximo lista)
   (if (= 0 cuantos)
@@ -452,12 +453,17 @@
 )
   
 ;Funcion que entrega un numero random
+;Entrada: Semilla (seed) y numero aleatorio maximo a generar va desde 0 hasta maximo-1
+;Salida: Numero entero aleatorio
 (define (getNumRandom xActual maximo)
   (let ((xNvo (myRandom xActual)))
           (remainder xNvo maximo)
     )
  )
 
+;Funcion que busca en una lista un numero
+;Entrada: Lista y numero a buscar en la lista
+;Salida: Si se encuentra el numero en la lista retorna 0, sino retorna 1
 (define (buscarEnLista lista num)
   (if ( = (length lista) 0)
       1
@@ -468,6 +474,9 @@
    )
  )
 
+;Funcion que agrega una lista a otra lista
+;Entrada: lista y lista a agregar
+;Salida: Lista que contiene un elemento mas (lista)
 (define (appendList lista elemento)
   (if (list? lista)
       (append lista (list elemento))
@@ -517,29 +526,28 @@
    )
 )
 
+;Funcion que, dependiendo de la dificultad ingresada, crea los obstaculos del escenario
+;Entrada: Tamaño eje X, tamaño eje Y, dificultad del escenario, semilla para generar
+;         valores pseudoaleatorios
+;Salida: Lista que contiene TDA obstaculos
 (define (crearObst N M D seed)
   (if (= D 3)
-      (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
-                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+      (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
       (if (and (= (remainder N 3) 0) (= D 2))
-          (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
-                               (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+          (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
                   (crearObstMedio N M (+ (/ N 3) 1)
                                   (obtenerNum (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list))
                                               (+ (getNumRandom seed M) 1) 1) (+ (getNumRandom seed N) 1)))
           (if (= D 2)
-              (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
-                                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+              (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
                       (crearObstMedio N M (+ (truncate (/ N 3)) 2)
                                       (obtenerNum (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list))
                                                   (+ (getNumRandom seed M) 1) 1) (+ (getNumRandom seed N) 1)))
               (if (and (= (remainder N 3) 0) (= D 1))
-                  (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
-                                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+                  (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
                           (crearObstDificil N M seed (+ (/ N 3) 1) (getListaRandomR (+ (getNumRandom seed M) 1)
                                                                                     seed M (list)) '()))
-                  (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
-                                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+                  (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
                           (crearObstDificil N M seed (+ (truncate (/ N 3)) 2)
                                             (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)) '()))
                )
@@ -548,25 +556,9 @@
     )
  )
 
-(define (crearObstRL N M seed cant lista)
-  (if (= (length lista) 0)
-      '()
-      (if (= (remainder N 3) 0)
-          (cons (obstaculo 3 (/ N 3) (car lista)) (crearObstRL N M seed cant (cdr lista)))
-          (cons (obstaculo 3 (+ (truncate (/ N 3)) 1) (car lista)) (crearObstRL N M seed cant (cdr lista)))
-        )
-   )
- )
-
-;Falta hacer los obstaculos para dificultad media y dificil
-
-(define (crearObstMedio N M comienzo posicion final)
-  (if (or (> comienzo final) (= comienzo N))
-      '()
-      (cons (obstaculo 3 comienzo posicion) (crearObstMedio N M (+ comienzo 1) posicion final))
-   )
- )
-
+;Funcion que obtiene un numero en especifico de una lista
+;Entrada: Lista de numeros, posiciond el elemento, auxiliar
+;Salida: Numero entero de la lista
 (define (obtenerNum lista posicion aux)
   (if (= aux posicion)
       (car lista)
@@ -574,6 +566,37 @@
    )
  )
 
+;Funcion que crea los obstaculos para la dificultad facil
+;Entrada: Tamaño eje X, tamaño eje Y, semilla para generar valores pseudoaleatorios
+;         lista con la posicion Y en donde van los obstaculos
+;Salida: Lista que contiene TDA obstaculos
+(define (crearObstFacil N M seed lista)
+  (if (= (length lista) 0)
+      '()
+      (if (= (remainder N 3) 0)
+          (cons (obstaculo 3 (/ N 3) (car lista)) (crearObstFacil N M seed (cdr lista)))
+          (cons (obstaculo 3 (+ (truncate (/ N 3)) 1) (car lista)) (crearObstFacil N M seed (cdr lista)))
+        )
+   )
+ )
+
+;Funcion que crea los obstaculos para la dificultad medio, se elige un obstaculo creado en la funcion
+;crearObstFacil y se aumenta su tamaño en el ejeX
+;Entrada: Tamaño eje X, tamaño eje Y, posicion X en donde se comenzara a generar el obstaculo, posicion Y del obstaculo y
+;         posicion X hasta donde se puede generar el obstaculo
+;Salida: Lista que contiene TDA obstaculos
+(define (crearObstMedio N M comienzo posicion final)
+  (if (or (> comienzo final) (= comienzo N))
+      '()
+      (cons (obstaculo 3 comienzo posicion) (crearObstMedio N M (+ comienzo 1) posicion final))
+   )
+ )
+
+;Funcion que crea los obstaculos para la dificultad dificil, se eligen todos los obstaculos creados en la funcion
+;crearObstFacil y se aumenta su tamaño en el ejeX
+;Entrada: Tamaño eje X, tamaño eje Y, semilla para generar valores pseudoaleatorios, posicion X en donde se comenzaran
+;         a generar los obstaculos, lista con las posiciones X de los obstaculos ya creados, lista resultante
+;Salida: Lista que contiene TDA obstaculos
 (define (crearObstDificil N M seed comienzo listaObst listaFinal)
   (if (= (length listaObst) 0)
       listaFinal
@@ -582,6 +605,10 @@
    )
  )
 
+;Funcion que crea los gusanos que controla el usuario
+;Entrada: Tamaño eje X, lista con el suelo y los obstaculos, cantidad de gusanos del usuario, auxiliar para el parametro
+;         id del constructor gusano y fila en donde se comenzaran a crear
+;Salida: Lista que contiene los TDA gusanos del usuario
 (define (crearJugador N listaEscenario cantJugador auxCantJugador fila)
   (if (> auxCantJugador cantJugador)
       '()
@@ -590,6 +617,10 @@
    )
  )
 
+;Funcion que crea los gusanos que controla la CPU
+;Entrada: Tamaño eje X, lista con el suelo y los obstaculos, cantidad de gusanos de la CPU, auxiliar para el parametro
+;         id del constructor gusano y fila en donde se comenzaran a crear
+;Salida: Lista que contiene los TDA gusanos de la CPU
 (define (crearEnemigo N listaEscenario cantEnemigos auxCantEnemigos fila)
   (if (> auxCantEnemigos cantEnemigos)
       '()
@@ -598,19 +629,24 @@
    )
  )
 
-(define (crearGusano N listaEscenario auxCantJugador fila mayor idgusano)
+;Funcion que crea un TDA gusano
+;Entrada: Tamaño eje X, lista con el suelo y los obstaculos, cantidad de gusanos creados, fila en donde se comenzaran a crear,
+;         auxiliar para saber si el gusano va encima de un obstaculo o el suelo y parametro id del constructor gusano
+;Salida: Lista con un TDA gusano
+(define (crearGusano N listaEscenario auxCantJugador fila mayor id)
   (if (and (= (length listaEscenario) 0) (> mayor 0))
-      (cons (gusano idgusano auxCantJugador (+ mayor 1) fila) '())
+      (cons (gusano id auxCantJugador (+ mayor 1) fila) '())
       (if (and (= (length listaEscenario) 0) (= (remainder N 3) 0))
-          (cons (gusano idgusano auxCantJugador (+ (/ N 3) 1) fila) '())
+          (cons (gusano id auxCantJugador (+ (/ N 3) 1) fila) '())
           (if (= (length listaEscenario) 0)
-              (cons (gusano idgusano auxCantJugador (+ (truncate (/ N 3)) 1) fila) '())
+              (cons (gusano id auxCantJugador (+ (truncate (/ N 3)) 1) fila) '())
               (if (and (obstaculo? (car listaEscenario)) (= fila (obstaculo_getPosY (car listaEscenario)))
                        (> (obstaculo_getPosX (car listaEscenario)) mayor))
-                  (crearGusano N (cdr listaEscenario) auxCantJugador fila (obstaculo_getPosX (car listaEscenario)) idgusano)
-                  (crearGusano N (cdr listaEscenario) auxCantJugador fila mayor idgusano)
+                  (crearGusano N (cdr listaEscenario) auxCantJugador fila (obstaculo_getPosX (car listaEscenario)) id)
+                  (crearGusano N (cdr listaEscenario) auxCantJugador fila mayor id)
                )
            )
        )
     )
  )
+
