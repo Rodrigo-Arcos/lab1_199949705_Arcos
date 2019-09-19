@@ -40,7 +40,7 @@
            (number? idGusano)
            (number? posX)
            (number? posY)
-           (= id 1)
+           (or (= id 0) (= id 1))
            (>= idGusano 0)
            (>= posX 0)
            (>= posY 0)
@@ -261,7 +261,7 @@
 (define (gusano_setId listGusano id)
   (if (and (gusano? listGusano)
            (number? id)
-           (= id 1)
+           (or (= id 0) (= id 1))
        )
       (list id (gusano_getIdGusano listGusano) (gusano_getPosX listGusano) (gusano_getPosY listGusano))
       null
@@ -422,14 +422,70 @@
 ;---------------------------------FUNCIONES REQUERIDAS------------------------------------------
 ;-----------------------------------------------------------------------------------------------
 
+;------------------------------------Funcion Random---------------------------------------------
+;Estas constantes fueron sacadas de https://en.wikipedia.org/wiki/Linear_congruential_generator
+(define a 1103515245)
+(define c 12345)
+(define m 2147483648)
+;Esta función random tuma un xn y obtiene el xn+1 de la secuencia de números aleatorios.
+(define myRandom
+  (lambda
+    (xn)
+    (remainder (+ (* a xn) c) m)
+  )
+)
+;Cada vez que pedimos un random, debemos pasar como argumento el random anterior.
+;Acá un ejemplo que permite generar una lista de números aleatorios.
+;Parámetros:
+;* "cuantos" indica el largo de la lista a generar.
+;* "xActual" valor actual del random, se pasa en cada nivel de recursión de forma actualizada
+;* "maximo" Los números generados van desde 0 hasta maximo-1
 
+(define (getListaRandomR cuantos xActual maximo lista)
+  (if (= 0 cuantos)
+      lista
+      (if (= (buscarEnLista lista (+ (remainder (myRandom xActual) maximo) 1)) 1)
+          (getListaRandomR (- cuantos 1) (myRandom xActual) maximo (appendList lista (+ (remainder (myRandom xActual) maximo) 1)))
+          (getListaRandomR cuantos (myRandom xActual) maximo lista)
+       )
+   )
+)
+  
+;Funcion que entrega un numero random
+(define (getNumRandom xActual maximo)
+  (let ((xNvo (myRandom xActual)))
+          (remainder xNvo maximo)
+    )
+ )
+
+(define (buscarEnLista lista num)
+  (if ( = (length lista) 0)
+      1
+      (if (= (car lista) num)
+          0
+          (buscarEnLista (cdr lista) num)
+       )
+   )
+ )
+
+(define (appendList lista elemento)
+  (if (list? lista)
+      (append lista (list elemento))
+      null
+   )
+ )
+
+;--------------------------------------Funcion RF---------------------------------------------
 ;Función que retorna un escenario válido de tamaño NxM, si no es factible crear el escenario retorna nulo
 ;Entrada: Tamaño eje X, tamaño eje Y, cantidad de enemigos, dificultad del escenario, semilla para generar
 ;         valores pseudoaleatorios
 ;Salida: Lista que representa el escenario del juego
 (define (createScene N M E D seed)
-  (crearSuelo N M)
-  null
+  (if (and (> D 0) (< D 4) (<= (+ E D) M))
+      (append (crearSuelo N M) (crearObst N M D seed) (crearJugador N (crearObst N M D seed) D 1 1)
+              (crearEnemigo N (crearObst N M D seed) E 1 5))
+      null
+   )
 )
 
 ;Funcion de encapsulamiento para crear el suelo
@@ -448,7 +504,7 @@
 (define (crearSueloRL N M auxN auxM)
   (if (= auxN 0)
       (cons N (cons M (crearSueloRL N M (+ auxN 1) (+ auxM 1))))
-      (if (and (> auxM 0) (< auxM M) (<= auxN N))
+      (if (and (> auxM 0) (< auxM M) (<= auxN (/ N 3)))
           (cons (list auxN auxM) (crearSueloRL N M auxN (+ auxM 1)))
           (if (and (= auxM M) (<= auxN N))
               (cons (list auxN auxM) (crearSueloRL N M (+ auxN 1) 1))
@@ -460,3 +516,101 @@
        )
    )
 )
+
+(define (crearObst N M D seed)
+  (if (= D 3)
+      (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
+                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+      (if (and (= (remainder N 3) 0) (= D 2))
+          (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
+                               (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+                  (crearObstMedio N M (+ (/ N 3) 1)
+                                  (obtenerNum (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list))
+                                              (+ (getNumRandom seed M) 1) 1) (+ (getNumRandom seed N) 1)))
+          (if (= D 2)
+              (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
+                                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+                      (crearObstMedio N M (+ (truncate (/ N 3)) 2)
+                                      (obtenerNum (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list))
+                                                  (+ (getNumRandom seed M) 1) 1) (+ (getNumRandom seed N) 1)))
+              (if (and (= (remainder N 3) 0) (= D 1))
+                  (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
+                                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+                          (crearObstDificil N M seed (+ (/ N 3) 1) (getListaRandomR (+ (getNumRandom seed M) 1)
+                                                                                    seed M (list)) '()))
+                  (append (crearObstRL N M (myRandom seed) (+ (getNumRandom seed M) 1)
+                                   (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
+                          (crearObstDificil N M seed (+ (truncate (/ N 3)) 2)
+                                            (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)) '()))
+               )
+           )
+       )
+    )
+ )
+
+(define (crearObstRL N M seed cant lista)
+  (if (= (length lista) 0)
+      '()
+      (if (= (remainder N 3) 0)
+          (cons (obstaculo 3 (/ N 3) (car lista)) (crearObstRL N M seed cant (cdr lista)))
+          (cons (obstaculo 3 (+ (truncate (/ N 3)) 1) (car lista)) (crearObstRL N M seed cant (cdr lista)))
+        )
+   )
+ )
+
+;Falta hacer los obstaculos para dificultad media y dificil
+
+(define (crearObstMedio N M comienzo posicion final)
+  (if (or (> comienzo final) (= comienzo N))
+      '()
+      (cons (obstaculo 3 comienzo posicion) (crearObstMedio N M (+ comienzo 1) posicion final))
+   )
+ )
+
+(define (obtenerNum lista posicion aux)
+  (if (= aux posicion)
+      (car lista)
+      (obtenerNum (cdr lista) posicion (+ aux 1))
+   )
+ )
+
+(define (crearObstDificil N M seed comienzo listaObst listaFinal)
+  (if (= (length listaObst) 0)
+      listaFinal
+      (crearObstDificil N M (myRandom seed) comienzo (cdr listaObst)
+                        (append listaFinal (crearObstMedio N M comienzo (car listaObst) (+ (getNumRandom seed N) 1))))
+   )
+ )
+
+(define (crearJugador N listaEscenario cantJugador auxCantJugador fila)
+  (if (> auxCantJugador cantJugador)
+      '()
+      (append (crearGusano N listaEscenario auxCantJugador fila 0 1) (crearJugador N listaEscenario cantJugador
+                                                                  (+ auxCantJugador 1) (+ fila 1)))
+   )
+ )
+
+(define (crearEnemigo N listaEscenario cantEnemigos auxCantEnemigos fila)
+  (if (> auxCantEnemigos cantEnemigos)
+      '()
+      (append (crearGusano N listaEscenario auxCantEnemigos fila 0 0) (crearEnemigo N listaEscenario cantEnemigos
+                                                                  (+ auxCantEnemigos 1) (- fila 1)))
+   )
+ )
+
+(define (crearGusano N listaEscenario auxCantJugador fila mayor idgusano)
+  (if (and (= (length listaEscenario) 0) (> mayor 0))
+      (cons (gusano idgusano auxCantJugador (+ mayor 1) fila) '())
+      (if (and (= (length listaEscenario) 0) (= (remainder N 3) 0))
+          (cons (gusano idgusano auxCantJugador (+ (/ N 3) 1) fila) '())
+          (if (= (length listaEscenario) 0)
+              (cons (gusano idgusano auxCantJugador (+ (truncate (/ N 3)) 1) fila) '())
+              (if (and (obstaculo? (car listaEscenario)) (= fila (obstaculo_getPosY (car listaEscenario)))
+                       (> (obstaculo_getPosX (car listaEscenario)) mayor))
+                  (crearGusano N (cdr listaEscenario) auxCantJugador fila (obstaculo_getPosX (car listaEscenario)) idgusano)
+                  (crearGusano N (cdr listaEscenario) auxCantJugador fila mayor idgusano)
+               )
+           )
+       )
+    )
+ )
