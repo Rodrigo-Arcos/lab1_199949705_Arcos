@@ -25,6 +25,10 @@
 ;	->number x
 ;	->number y
 
+;5.- Suelo
+;	->number x
+;	->number y
+
 ;Estos TDAs seran almacenados en una lista, el cual sera la representacion del escenario, los primeros elementos de esta lista seran
 ;las dimensiones del escenario, luego el suelo, obstaculos y finalmente los gusanos y proyectiles.
 
@@ -95,7 +99,7 @@
 (define (gusano? listGusano)
   (if (and (list? listGusano)
            (= (length listGusano) 4)
-           (gusano (car listGusano) (car (cdr listGusano)) (car (cdr (cdr listGusano))) (car (cdr (cdr (cdr listGusano)))))
+           (> (length (gusano (car listGusano) (car (cdr listGusano)) (car (cdr (cdr listGusano))) (car (cdr (cdr (cdr listGusano)))))) 0)
        )
       #t
       #f
@@ -108,8 +112,8 @@
 (define (disparo? listDisparo)
   (if (and (list? listDisparo)
            (= (length listDisparo) 5)
-           (disparo (car listDisparo) (car (cdr listDisparo)) (car (cdr (cdr listDisparo))) (car (cdr (cdr (cdr listDisparo))))
-                    (car (cdr (cdr (cdr (cdr listDisparo))))))
+           (> (length (disparo (car listDisparo) (car (cdr listDisparo)) (car (cdr (cdr listDisparo))) (car (cdr (cdr (cdr listDisparo))))
+                    (car (cdr (cdr (cdr (cdr listDisparo))))))) 0)
        )
       #t
       #f
@@ -122,12 +126,27 @@
 (define (obstaculo? listObst)
   (if (and (list? listObst)
            (= (length listObst) 3)
-           (obstaculo (car listObst) (car (cdr listObst)) (car (cdr (cdr listObst))))
+           (> (length (obstaculo (car listObst) (car (cdr listObst)) (car (cdr (cdr listObst))))) 0)
        )
       #t
       #f
    )
 )
+
+;Funcion que retorna true si la lista dada contiene la informacion de un TDA suelo, en caso contrario, entrega false
+;Entrada: Lista con informacion de un suelo
+;Salida: True o False 
+(define (suelo? listSuelo)
+  (if (and (list? listSuelo)
+           (= (length listSuelo) 2)
+           (number? (car listSuelo))
+           (> (car listSuelo) 0)
+           (number? (car (cdr listSuelo)))
+           (> (car (cdr listSuelo)) 0))
+      #t
+      #f
+   )
+ )
 
 ;------------------------------SELECTOR------------------------------
 ;GUSANO
@@ -249,6 +268,27 @@
 (define (obstaculo_getPosY listObst)
   (if (obstaculo? listObst)
       (car (cdr (cdr listObst)))
+      null
+   )
+ )
+
+;SUELO
+;Funcion que retorna la posicion X de una lista suelo, en caso contrario entrega una lista vacia
+;Entrada: Lista
+;Salida: Poscion X de la lista suelo o una lista vacia
+(define (suelo_getPosX listObst)
+  (if (suelo? listObst)
+      (car listObst)
+      null
+   )
+ )
+
+;Funcion que retorna la posicion Y de una lista suelo, en caso contrario entrega una lista vacia
+;Entrada: Lista
+;Salida: Poscion Y de la lista suelo o una lista vacia
+(define (suelo_getPosY listObst)
+  (if (suelo? listObst)
+      (car (cdr listObst))
       null
    )
  )
@@ -650,3 +690,71 @@
     )
  )
 
+;Funcion que recibe un escenario de juego y verifica si cumple con los criterios para ser considerado un escenario válido
+;Entrada: Escenario de juego
+;Salida: True o false
+(define (checkScene scene)
+  (if (and (list? scene) (> (length scene) 2)
+           (number? (car scene)) (> (car scene) 0)
+           (number? (car (cdr scene))) (> (car (cdr scene)) 0))
+      (if (verificarTDAs (cdr (cdr scene)))
+          (if (verificarPosDistintas (car (car (obtenerPosXY (cdr (cdr scene)))))
+                                     (car (cdr (car (obtenerPosXY (cdr (cdr scene))))))
+                                     (cdr (obtenerPosXY (cdr (cdr scene)))))
+              #t
+              #f
+           )
+          #f
+       )
+      #f
+   )
+ )
+
+;Funcion que verifica que, a partir del tercer elemento del escenario del juego, cada elemento cumplan con los criterios
+;para ser considerados alguno de los TDAs
+;Entrada: Lista desde el tercer elemento del escenario
+;Salida: True o False
+(define (verificarTDAs listaTDAs)
+  (if (= (length listaTDAs) 0)
+      #t
+      (if (or (gusano? (car listaTDAs)) (disparo? (car listaTDAs)) (obstaculo? (car listaTDAs)) (suelo? (car listaTDAs)))
+          (verificarTDAs (cdr listaTDAs))
+          #f
+       )
+   )
+ )
+
+;Funcion que crea una lista con las posiciones ocupadas por los TDAs
+;Entrada: Lista desde el tercer elemento del escenario
+;Salida: Lista de listas
+(define (obtenerPosXY listaTDAs)
+  (if (= (length listaTDAs) 0)
+      '()
+      (if (gusano? (car listaTDAs))
+          (cons (list (gusano_getPosX (car listaTDAs)) (gusano_getPosY (car listaTDAs))) (obtenerPosXY (cdr listaTDAs)))
+          (if (disparo? (car listaTDAs))
+              (cons (list (disparo_getPosX (car listaTDAs)) (disparo_getPosY (car listaTDAs))) (obtenerPosXY (cdr listaTDAs)))
+              (if (obstaculo? (car listaTDAs))
+                  (cons (list (obstaculo_getPosX (car listaTDAs)) (obstaculo_getPosY (car listaTDAs))) (obtenerPosXY (cdr listaTDAs)))
+                  (if (suelo? (car listaTDAs))
+                      (cons (list (suelo_getPosX (car listaTDAs)) (suelo_getPosY (car listaTDAs))) (obtenerPosXY (cdr listaTDAs)))
+                      '()
+                   )
+               )
+           )
+       )
+    )
+ )
+
+;Funcion que verifica si algun elemento de una lista de listas de dos elementos se repite
+;Entrada: Posicion X, posicion Y, lista de listas
+;Salida: True o false
+(define (verificarPosDistintas posX posY listaPosXY)
+  (if (= (length listaPosXY) 0)
+      #t
+      (if (and (= posX (car (car listaPosXY))) (= posY (car (cdr (car listaPosXY)))))
+          #f
+          (verificarPosDistintas (car (car listaPosXY)) (car (cdr (car listaPosXY))) (cdr listaPosXY))
+       )
+    )
+ )
