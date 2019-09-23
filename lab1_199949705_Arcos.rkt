@@ -758,3 +758,80 @@
        )
     )
  )
+
+(define (play scene member move tf angle seed)
+  (if (and (checkScene scene) (> (length (((buscarGusanoIdGusano (cdr (cdr scene))) member) 1)) 0))
+      (((buscarGusanoIdGusano (cdr (cdr scene))) member) 1)
+      3
+   )
+ )
+
+(define (buscarGusanoIdGusano listaTDAs) (lambda (member) (lambda (id)
+  (if (= (length listaTDAs) 0)
+      '()
+      (if (and (gusano? (car listaTDAs)) (= (gusano_getIdGusano (car listaTDAs)) member) (= (gusano_getId (car listaTDAs)) id))
+          (list (gusano_getPosX (car listaTDAs)) (gusano_getPosY (car listaTDAs)))
+          (((buscarGusanoIdGusano (cdr listaTDAs)) member) id)
+       )
+    )
+ )))
+
+(define (moverJugadorDer listaTDAs) (lambda (N) (lambda (member) (lambda (move) (lambda (id) (lambda (posXY)
+  (if (or (> (car posXY) N) (<= (car posXY) 0))
+      (((eliminarGusano listaTDAs) id) member)
+      (if (= move 0)
+          ((((ponerGusano (((eliminarGusano listaTDAs) id) member)) posXY) id) member)
+          (if (and (((verificarPosDistintasXY (car PosXY)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs))
+                   (((verificarPosDistintasXY (- (car PosXY) 1)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs)))
+              (if (= (length (((posXYCaidaGusano (- (car PosXY) 1)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs))) 0)
+                  (((eliminarGusano listaTDAs) id) member)
+                  ((((((moverJugadorDer listaTDAs) N) member) (- move 1)) id)
+                   (((posXYCaidaGusano (- (car PosXY) 1)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs)))
+               )
+              (if (((verificarPosDistintasXY (car PosXY)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs))
+                  ((((((moverJugadorDer listaTDAs) N) member) (- move 1)) id) (list (car posXY) (+ (car (cdr posXY)) 1)))
+                  ((((ponerGusano (((eliminarGusano listaTDAs) id) member)) posXY) id) member)
+               )
+           )
+       )
+   )                                                                                 
+))))))
+
+(define (eliminarGusano listaTDAs) (lambda (id) (lambda (member)
+  (if (= (length listaTDAs) 0)
+      '()
+      (if (and (gusano? (car listaTDAs)) (= (gusano_getId (car listaTDAs)) id) (= (gusano_getIdGusano (car listaTDAs)) member))
+          (append (cdr listaTDAs) (((eliminarGusano '()) id) member))
+          (cons (car listaTDAs) (((eliminarGusano (cdr listaTDAs)) id) member))
+       )
+   )
+ )))
+
+(define (ponerGusano listaTDAs) (lambda (posXY) (lambda (id) (lambda (member)
+   (appendList listaTDAs (gusano id member (car posXY) (car (cdr posXY))))
+ ))))
+
+;Funcion que verifica si una posicion XY no este en una lista de listas de dos elementos
+;Entrada: Posicion X, posicion Y, lista de listas
+;Salida: True o false
+(define (verificarPosDistintasXY posX) (lambda (posY) (lambda (listaPosXY)
+  (if (= (length listaPosXY) 0)
+      #t
+      (if (and (= posX (car (car listaPosXY))) (= posY (car (cdr (car listaPosXY)))))
+          #f
+          (((verificarPosDistintasXY posX) posY) (cdr listaPosXY))
+       )
+    )
+ )))
+
+(define (posXYCaidaGusano posX) (lambda (posY) (lambda (listaPosXY)
+  (if (and (<= posX 0) (<= (- posX 1) 0))
+      '()
+      (if (((verificarPosDistintasXY (- posX 1)) posY) listaPosXY)
+          (((posXYCaidaGusano (- PosX 1)) PosY) listaPosXY)
+          (list posX posY)
+       )
+   )
+  )))
+
+
