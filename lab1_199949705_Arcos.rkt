@@ -463,6 +463,7 @@
 ;-----------------------------------------------------------------------------------------------
 
 ;------------------------------------Funcion Random---------------------------------------------
+
 ;Estas constantes fueron sacadas de https://en.wikipedia.org/wiki/Linear_congruential_generator
 (define a 1103515245)
 (define c 12345)
@@ -501,6 +502,17 @@
     )
  )
 
+;Se define la constante velocidad para los disparos
+(define velocidad 1)
+;Se define la constante pi para la funcion que convierte grados a radianes
+(define pi 3.141592653589793)
+;Funcion que convierte de grados a radianes
+;Entrada: Grados (entero)
+;Salida: Radianes
+(define (getRad grados)
+ (/ (* grados pi) 180)
+)
+
 ;Funcion que busca en una lista un numero
 ;Entrada: Lista y numero a buscar en la lista
 ;Salida: Si se encuentra el numero en la lista retorna 0, sino retorna 1
@@ -531,8 +543,8 @@
 ;Salida: Lista que representa el escenario del juego
 (define (createScene N M E D seed)
   (if (and (> D 0) (< D 4) (<= (+ E D) M))
-      (append (crearSuelo N M) (crearObst N M D seed) (crearJugador N (crearObst N M D seed) D 1 1)
-              (crearEnemigo N (crearObst N M D seed) E 1 5))
+      (append (crearSuelo N M) (crearObst N M D seed) (crearJugador M (crearObst N M D seed) D 1 1)
+              (crearEnemigo M (crearObst N M D seed) E 1 N))
       null
    )
 )
@@ -553,11 +565,11 @@
 (define (crearSueloRL N M auxN auxM)
   (if (= auxN 0)
       (cons N (cons M (crearSueloRL N M (+ auxN 1) (+ auxM 1))))
-      (if (and (> auxM 0) (< auxM M) (<= auxN (/ N 3)))
-          (cons (list auxN auxM) (crearSueloRL N M auxN (+ auxM 1)))
-          (if (and (= auxM M) (<= auxN N))
-              (cons (list auxN auxM) (crearSueloRL N M (+ auxN 1) 1))
-              (if (and (<= auxN (/ N 3)) (<= auxN N))
+      (if (and (> auxN 0) (< auxN N) (<= auxM (/ M 3)))
+          (cons (list auxN auxM) (crearSueloRL N M (+ auxN 1) auxM))
+          (if (and (= auxN N) (<= auxM M))
+              (cons (list auxN auxM) (crearSueloRL N M 1 (+ auxM 1)))
+              (if (and (<= auxM (/ M 3)) (<= auxM M))
                   (cons (list auxN M) (crearSueloRL N M (+ auxN 1) (+ auxM 1)))
                   '()
                )
@@ -572,24 +584,23 @@
 ;Salida: Lista que contiene TDA obstaculos
 (define (crearObst N M D seed)
   (if (= D 3)
-      (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
-      (if (and (= (remainder N 3) 0) (= D 2))
-          (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
-                  (crearObstMedio N M (+ (/ N 3) 1)
-                                  (obtenerNum (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list))
-                                              (+ (getNumRandom seed M) 1) 1) (+ (getNumRandom seed N) 1)))
+      (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list)))
+      (if (and (= (remainder M 3) 0) (= D 2))
+          (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list)))
+                  (crearObstMedio N M (obtenerNum (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list))
+                                              (+ (getNumRandom seed N) 1) 1) (+ (/ M 3) 1) (+ (getNumRandom seed M) 1)))
           (if (= D 2)
-              (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
-                      (crearObstMedio N M (+ (truncate (/ N 3)) 2)
-                                      (obtenerNum (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list))
-                                                  (+ (getNumRandom seed M) 1) 1) (+ (getNumRandom seed N) 1)))
-              (if (and (= (remainder N 3) 0) (= D 1))
-                  (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
-                          (crearObstDificil N M seed (+ (/ N 3) 1) (getListaRandomR (+ (getNumRandom seed M) 1)
-                                                                                    seed M (list)) '()))
-                  (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)))
-                          (crearObstDificil N M seed (+ (truncate (/ N 3)) 2)
-                                            (getListaRandomR (+ (getNumRandom seed M) 1) seed M (list)) '()))
+              (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list)))
+                      (crearObstMedio N M (obtenerNum (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list))
+                                                  (+ (getNumRandom seed N) 1) 1) (+ (truncate (/ M 3)) 2)
+                                                                                 (+ (getNumRandom seed M) 1)))
+              (if (and (= (remainder M 3) 0) (= D 1))
+                  (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list)))
+                          (crearObstDificil N M seed (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list))
+                                            (+ (/ M 3) 1) '()))
+                  (append (crearObstFacil N M (myRandom seed) (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list)))
+                          (crearObstDificil N M seed (getListaRandomR (+ (getNumRandom seed N) 1) seed N (list))
+                                            (+ (truncate (/ M 3)) 2) '()))
                )
            )
        )
@@ -607,41 +618,41 @@
  )
 
 ;Funcion que crea los obstaculos para la dificultad facil
-;Entrada: Tamaño eje X, tamaño eje Y, semilla para generar valores pseudoaleatorios
-;         lista con la posicion Y en donde van los obstaculos
+;Entrada: Tamaño eje X, tamaño eje Y, semilla para generar valores pseudoaleatorios,
+;         lista con la posicion X en donde van los obstaculos
 ;Salida: Lista que contiene TDA obstaculos
 (define (crearObstFacil N M seed lista)
   (if (= (length lista) 0)
       '()
-      (if (= (remainder N 3) 0)
-          (cons (obstaculo 3 (/ N 3) (car lista)) (crearObstFacil N M seed (cdr lista)))
-          (cons (obstaculo 3 (+ (truncate (/ N 3)) 1) (car lista)) (crearObstFacil N M seed (cdr lista)))
+      (if (= (remainder M 3) 0)
+          (cons (obstaculo 3 (car lista) (/ M 3)) (crearObstFacil N M seed (cdr lista)))
+          (cons (obstaculo 3 (car lista) (+ (truncate (/ M 3)) 1)) (crearObstFacil N M seed (cdr lista)))
         )
    )
  )
 
 ;Funcion que crea los obstaculos para la dificultad medio, se elige un obstaculo creado en la funcion
-;crearObstFacil y se aumenta su tamaño en el ejeX
+;crearObstFacil y se aumenta su tamaño en el ejeY
 ;Entrada: Tamaño eje X, tamaño eje Y, posicion X en donde se comenzara a generar el obstaculo, posicion Y del obstaculo y
-;         posicion X hasta donde se puede generar el obstaculo
+;         posicion Y hasta donde se generaran los obstaculos
 ;Salida: Lista que contiene TDA obstaculos
 (define (crearObstMedio N M comienzo posicion final)
-  (if (or (> comienzo final) (= comienzo N))
+  (if (or (> posicion final) (= posicion M))
       '()
-      (cons (obstaculo 3 comienzo posicion) (crearObstMedio N M (+ comienzo 1) posicion final))
+      (cons (obstaculo 3 comienzo posicion) (crearObstMedio N M comienzo (+ posicion 1) final))
    )
  )
 
 ;Funcion que crea los obstaculos para la dificultad dificil, se eligen todos los obstaculos creados en la funcion
-;crearObstFacil y se aumenta su tamaño en el ejeX
-;Entrada: Tamaño eje X, tamaño eje Y, semilla para generar valores pseudoaleatorios, posicion X en donde se comenzaran
-;         a generar los obstaculos, lista con las posiciones X de los obstaculos ya creados, lista resultante
+;crearObstFacil y se aumenta su tamaño en el ejeY
+;Entrada: Tamaño eje X, tamaño eje Y, semilla para generar valores pseudoaleatorios, lista con las posiciones X de los
+;         obstaculos ya creados, posicion Y en donde se comenzaran a generar los obstaculos, lista resultante
 ;Salida: Lista que contiene TDA obstaculos
-(define (crearObstDificil N M seed comienzo listaObst listaFinal)
+(define (crearObstDificil N M seed listaObst comienzo listaFinal)
   (if (= (length listaObst) 0)
       listaFinal
-      (crearObstDificil N M (myRandom seed) comienzo (cdr listaObst)
-                        (append listaFinal (crearObstMedio N M comienzo (car listaObst) (+ (getNumRandom seed N) 1))))
+      (crearObstDificil N M (myRandom seed) (cdr listaObst) comienzo
+                        (append listaFinal (crearObstMedio N M (car listaObst) comienzo (+ (getNumRandom seed M) 1))))
    )
  )
 
@@ -649,10 +660,10 @@
 ;Entrada: Tamaño eje X, lista con el suelo y los obstaculos, cantidad de gusanos del usuario, auxiliar para el parametro
 ;         id del constructor gusano y fila en donde se comenzaran a crear
 ;Salida: Lista que contiene los TDA gusanos del usuario
-(define (crearJugador N listaEscenario cantJugador auxCantJugador fila)
+(define (crearJugador M listaEscenario cantJugador auxCantJugador fila)
   (if (> auxCantJugador cantJugador)
       '()
-      (append (crearGusano N listaEscenario auxCantJugador fila 0 1) (crearJugador N listaEscenario cantJugador
+      (append (crearGusano M listaEscenario auxCantJugador fila 0 1) (crearJugador M listaEscenario cantJugador
                                                                   (+ auxCantJugador 1) (+ fila 1)))
    )
  )
@@ -661,10 +672,10 @@
 ;Entrada: Tamaño eje X, lista con el suelo y los obstaculos, cantidad de gusanos de la CPU, auxiliar para el parametro
 ;         id del constructor gusano y fila en donde se comenzaran a crear
 ;Salida: Lista que contiene los TDA gusanos de la CPU
-(define (crearEnemigo N listaEscenario cantEnemigos auxCantEnemigos fila)
+(define (crearEnemigo M listaEscenario cantEnemigos auxCantEnemigos fila)
   (if (> auxCantEnemigos cantEnemigos)
       '()
-      (append (crearGusano N listaEscenario auxCantEnemigos fila 0 0) (crearEnemigo N listaEscenario cantEnemigos
+      (append (crearGusano M listaEscenario auxCantEnemigos fila 0 0) (crearEnemigo M listaEscenario cantEnemigos
                                                                   (+ auxCantEnemigos 1) (- fila 1)))
    )
  )
@@ -673,17 +684,17 @@
 ;Entrada: Tamaño eje X, lista con el suelo y los obstaculos, cantidad de gusanos creados, fila en donde se comenzaran a crear,
 ;         auxiliar para saber si el gusano va encima de un obstaculo o el suelo y parametro id del constructor gusano
 ;Salida: Lista con un TDA gusano
-(define (crearGusano N listaEscenario auxCantJugador fila mayor id)
+(define (crearGusano M listaEscenario auxCantJugador fila mayor id)
   (if (and (= (length listaEscenario) 0) (> mayor 0))
-      (cons (gusano id auxCantJugador (+ mayor 1) fila) '())
-      (if (and (= (length listaEscenario) 0) (= (remainder N 3) 0))
-          (cons (gusano id auxCantJugador (+ (/ N 3) 1) fila) '())
+      (cons (gusano id auxCantJugador fila (+ mayor 1)) '())
+      (if (and (= (length listaEscenario) 0) (= (remainder M 3) 0))
+          (cons (gusano id auxCantJugador fila (+ (/ M 3) 1)) '())
           (if (= (length listaEscenario) 0)
-              (cons (gusano id auxCantJugador (+ (truncate (/ N 3)) 1) fila) '())
-              (if (and (obstaculo? (car listaEscenario)) (= fila (obstaculo_getPosY (car listaEscenario)))
-                       (> (obstaculo_getPosX (car listaEscenario)) mayor))
-                  (crearGusano N (cdr listaEscenario) auxCantJugador fila (obstaculo_getPosX (car listaEscenario)) id)
-                  (crearGusano N (cdr listaEscenario) auxCantJugador fila mayor id)
+              (cons (gusano id auxCantJugador fila (+ (truncate (/ M 3)) 1)) '())
+              (if (and (obstaculo? (car listaEscenario)) (= fila (obstaculo_getPosX (car listaEscenario)))
+                       (> (obstaculo_getPosY (car listaEscenario)) mayor))
+                  (crearGusano M (cdr listaEscenario) auxCantJugador fila (obstaculo_getPosY (car listaEscenario)) id)
+                  (crearGusano M (cdr listaEscenario) auxCantJugador fila mayor id)
                )
            )
        )
@@ -759,79 +770,260 @@
     )
  )
 
-(define (play scene member move tf angle seed)
-  (if (and (checkScene scene) (> (length (((buscarGusanoIdGusano (cdr (cdr scene))) member) 1)) 0))
-      (((buscarGusanoIdGusano (cdr (cdr scene))) member) 1)
-      3
+;Función que permite disparar proyectil tomando en consideracion el desplazamiento del jugador, el disparo del proyectil,
+;y la respuesta de la CPU
+;Entrada: Escenario del juego, personaje elegido, movimiento del personaje (derecha o izquierda), funcion de trayectoria,}
+;         angulo del disparo, semilla para generar valores pseudoaleatorios 
+;Salida: Nuevo escenario y actualizacion del juego
+(define (play scene) (lambda (member) (lambda (move) (lambda (tf) (lambda (angle) (lambda (seed)
+  (if (and (checkScene scene) (gusanoExiste? (cdr (cdr scene)) member 1) (> (length (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) 0))
+      (if (> move 0)
+          (if (> (length (tf scene member 1 angle)) 0)
+              (jugadaCPU (append (list 5 5) (eliminarTDA (moverJugadorDer (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))) (tf scene member 1 angle))) seed)
+              (jugadaCPU (append (list 5 5) (moverJugadorDer (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)))) seed)
+           )
+          (if (> (length (tf scene member id angle)) 0)
+              (jugadaCPU (append (list 5 5) (eliminarTDA (moverJugadorIzq (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))) (tf scene member 1 angle))) seed)
+              (jugadaCPU (append (list 5 5) (moverJugadorIzq (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)))) seed)
+           )
+       )
+      null ;sino no es un escenario retornar null
    )
- )
+))))))
 
-(define (buscarGusanoIdGusano listaTDAs) (lambda (member) (lambda (id)
+;Funcion que verifica si existe el gusano seleccionado
+;Entrada: Lista con los TDAs del escenario, gusano a buscar, id del gusano
+;Salida: True o False
+(define (gusanoExiste? listaTDAs member id)
+  (if (= (length listaTDAs) 0)
+      #f
+      (if (and (gusano? (car listaTDAs)) (= (gusano_getId (car listaTDAs)) id) (= (gusano_getIdGusano (car listaTDAs)) member))
+          #t
+          (gusanoExiste? (cdr listaTDAs) member id)
+       )
+   )
+)
+
+;Funcion que retorna una lista con la id, posicion X y posicion Y de un gusano
+;Entrada: Lista de los TDAs del escenario, gusano a buscar, equipo del gusano a buscar
+;Salida: Lista con id, posicion X y posicion Y de un gusano
+(define (buscarGusanoIdPosXY listaTDAs member id)
   (if (= (length listaTDAs) 0)
       '()
       (if (and (gusano? (car listaTDAs)) (= (gusano_getIdGusano (car listaTDAs)) member) (= (gusano_getId (car listaTDAs)) id))
-          (list (gusano_getPosX (car listaTDAs)) (gusano_getPosY (car listaTDAs)))
-          (((buscarGusanoIdGusano (cdr listaTDAs)) member) id)
+          (list (gusano_getId (car listaTDAs)) (gusano_getPosX (car listaTDAs)) (gusano_getPosY (car listaTDAs)))
+          (buscarGusanoIdPosXY (cdr listaTDAs) member id)
        )
     )
- )))
+ )
 
-(define (moverJugadorDer listaTDAs) (lambda (N) (lambda (member) (lambda (move) (lambda (id) (lambda (posXY)
+
+;Funcion que genera el movimiento a la derecha de un gusano
+;Entrada: Lista de los TDAs del escenario, Tamaño eje X, gusano a buscar, cantidad de movimientos,
+;         equipo del gusano a buscar, lista con la posicion X e Y del gusano a mover
+;Salida: Lista de TDAs con el movimiento del jugador actualizado
+(define (moverJugadorDer listaTDAs N member move id posXY)
   (if (or (> (car posXY) N) (<= (car posXY) 0))
-      (((eliminarGusano listaTDAs) id) member)
+      (eliminarGusano listaTDAs id member)
       (if (= move 0)
-          ((((ponerGusano (((eliminarGusano listaTDAs) id) member)) posXY) id) member)
-          (if (and (((verificarPosDistintasXY (car PosXY)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs))
-                   (((verificarPosDistintasXY (- (car PosXY) 1)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs)))
-              (if (= (length (((posXYCaidaGusano (- (car PosXY) 1)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs))) 0)
-                  (((eliminarGusano listaTDAs) id) member)
-                  ((((((moverJugadorDer listaTDAs) N) member) (- move 1)) id)
-                   (((posXYCaidaGusano (- (car PosXY) 1)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs)))
+          (ponerGusano (eliminarGusano listaTDAs id member) posXY id member)
+          (if (and (verificarPosDistintasXY (+ (car posXY) 1) (car (cdr posXY)) (obtenerPosXY listaTDAs))
+                   (verificarPosDistintasXY (+ (car posXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
+              (if (= (length (posXYCaidaGusano (+ (car posXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs))) 0)
+                  (eliminarGusano listaTDAs id member)
+                  (moverJugadorDer listaTDAs N member (- move 1) id
+                   (posXYCaidaGusano (+ (car posXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
                )
-              (if (((verificarPosDistintasXY (car PosXY)) (+ (car (cdr posXY)) 1)) (obtenerPosXY listaTDAs))
-                  ((((((moverJugadorDer listaTDAs) N) member) (- move 1)) id) (list (car posXY) (+ (car (cdr posXY)) 1)))
-                  ((((ponerGusano (((eliminarGusano listaTDAs) id) member)) posXY) id) member)
+              (if (verificarPosDistintasXY (+ (car posXY) 1) (car (cdr posXY)) (obtenerPosXY listaTDAs))
+                  (moverJugadorDer listaTDAs N member (- move 1) id (list (+ (car posXY) 1) (car (cdr posXY))))
+                  (ponerGusano (eliminarGusano listaTDAs id member) posXY id member)
                )
            )
        )
    )                                                                                 
-))))))
+)
 
-(define (eliminarGusano listaTDAs) (lambda (id) (lambda (member)
+;Funcion que elimina un TDA gusano de una lista TDA
+;Entrada: Lista con los TDAs del escenario, id del gusano a eliminar, gusano a buscar
+;Salida: Lista de TDAs actualizada
+(define (eliminarGusano listaTDAs id member)
   (if (= (length listaTDAs) 0)
       '()
       (if (and (gusano? (car listaTDAs)) (= (gusano_getId (car listaTDAs)) id) (= (gusano_getIdGusano (car listaTDAs)) member))
-          (append (cdr listaTDAs) (((eliminarGusano '()) id) member))
-          (cons (car listaTDAs) (((eliminarGusano (cdr listaTDAs)) id) member))
+          (append (cdr listaTDAs) (eliminarGusano '() id member))
+          (cons (car listaTDAs) (eliminarGusano (cdr listaTDAs) id member))
        )
    )
- )))
+ )
 
-(define (ponerGusano listaTDAs) (lambda (posXY) (lambda (id) (lambda (member)
+;Funcion que inserta un TDA gusano al final de una lista TDA
+;Entrada: Lista con los TDAs del escenario, lista con la posicion X e Y del gusano, id del gusano, gusano a insertar
+;Salida: Lista de TDAs actualizada
+(define (ponerGusano listaTDAs posXY id member)
    (appendList listaTDAs (gusano id member (car posXY) (car (cdr posXY))))
- ))))
+ )
 
 ;Funcion que verifica si una posicion XY no este en una lista de listas de dos elementos
 ;Entrada: Posicion X, posicion Y, lista de listas
 ;Salida: True o false
-(define (verificarPosDistintasXY posX) (lambda (posY) (lambda (listaPosXY)
+(define (verificarPosDistintasXY posX posY listaPosXY)
   (if (= (length listaPosXY) 0)
       #t
       (if (and (= posX (car (car listaPosXY))) (= posY (car (cdr (car listaPosXY)))))
           #f
-          (((verificarPosDistintasXY posX) posY) (cdr listaPosXY))
+          (verificarPosDistintasXY posX posY (cdr listaPosXY))
        )
     )
- )))
+ )
 
-(define (posXYCaidaGusano posX) (lambda (posY) (lambda (listaPosXY)
-  (if (and (<= posX 0) (<= (- posX 1) 0))
+;Funcion que retorna la posixion X e Y de un gusano cuando cae al moverse
+;Entrada: Posicion X inicial del gusano, posicion Y inicial del gusano, lista con las posiciones X e Y de los TDAs
+;Salida: Lista con la nueva posicion X e Y del gusano
+(define (posXYCaidaGusano posX posY listaPosXY)
+  (if (and (<= posY 0) (<= (- posY 1) 0))
       '()
-      (if (((verificarPosDistintasXY (- posX 1)) posY) listaPosXY)
-          (((posXYCaidaGusano (- PosX 1)) PosY) listaPosXY)
+      (if (verificarPosDistintasXY posX (- posY 1) listaPosXY)
+          (posXYCaidaGusano posX (- posY 1) listaPosXY)
           (list posX posY)
        )
    )
-  )))
+ )
 
+;Funcion que genera el movimiento a la izquierda de un gusano
+;Entrada: Lista de los TDAs del escenario, Tamaño eje X, gusano a buscar, cantidad de movimientos,
+;         equipo del gusano a buscar, lista con la posicion X e Y del gusano a mover
+;Salida: Lista de TDAs con el movimiento del jugador actualizado
+(define (moverJugadorIzq listaTDAs N member move id posXY)
+  (if (or (> (car posXY) N) (<= (car posXY) 0))
+      (eliminarGusano listaTDAs id member)
+      (if (= move 0)
+          (ponerGusano (eliminarGusano listaTDAs id member) posXY id member)
+          (if (and (verificarPosDistintasXY (- (car posXY) 1) (car (cdr posXY)) (obtenerPosXY listaTDAs))
+                   (verificarPosDistintasXY (- (car PosXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
+              (if (= (length (posXYCaidaGusano (- (car PosXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs))) 0)
+                  (eliminarGusano listaTDAs id member)
+                  (moverJugadorIzq listaTDAs N member (- move 1) id (posXYCaidaGusano (- (car PosXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
+               )
+              (if (verificarPosDistintasXY (- (car posXY) 1) (car (cdr posXY)) (obtenerPosXY listaTDAs))
+                  (moverJugadorIzq listaTDAs N member (- move 1) id (list (- (car posXY) 1) (car (cdr posXY))))
+                  (ponerGusano (eliminarGusano listaTDAs id member posXY id member))
+               )
+           )
+       )
+   )                                                                                 
+)
 
+;Funcion que realiza un disparo en forma de movimiento rectilineo uniforme (MRU)
+;Entrada: Escenario del juego, gusnao que realiza el disparo, id del gusano, angulo del disparo
+;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
+(define (disparoMRU scene member id angle)
+  (if (checkScene scene)
+      (realizarDisparo (car scene) (car (cdr scene)) (cdr (cdr scene)) (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member id)) angle)
+      '()
+   )
+ )
+
+;Funcion que busca el impacto del disparo realizado por un gusano
+;Entrada: Tamaño eje X, tamaño eje Y, lista con los TDAs del escenario, lista con la posicion X e Y del punto de partida del
+;         disparo, angulo del disparo
+;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
+(define (realizarDisparo N M listaTDAs posXY angle)
+  (if (or (<= (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad))) 0)
+           (> (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad))) N)
+           (<= (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))) 0)
+           (> (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))) M))
+      '()
+      (if (buscarPosXYOcup listaTDAs (list (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad)))
+                                           (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad)))))
+          (list (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad)))
+                (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))))
+          (realizarDisparo N M listaTDAs (list (+ (car posXY) (* (cos (getRad angle)) velocidad))
+                                               (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))) angle)
+       )
+    )
+ )
+
+;Funcion que verifica si una posicion XY ya este utilizada por algun TDA
+;Entrada: Lista con los TDAs del escenario, lista con posicion X e Y
+;Salida: True o False
+(define (buscarPosXYOcup listaTDAs posXY)
+  (if (= (length listaTDAs) 0)
+      #f
+      (if (or (and (gusano? (car listaTDAs)) (= (gusano_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (gusano_getPosY (car listaTDAs)) (ceiling (car (cdr posXY)))))
+              (and (disparo? (car listaTDAs)) (= (disparo_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (disparo_getPosY (car listaTDAs)) (ceiling (car (cdr posXY)))))
+              (and (obstaculo? (car listaTDAs)) (= (obstaculo_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (obstaculo_getPosY (car listaTDAs)) (ceiling (car (cdr posXY)))))
+              (and (suelo? (car listaTDAs)) (= (suelo_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (suelo_getPosY (car listaTDAs)) (ceiling (car (cdr posXY))))))
+          #t
+          (buscarPosXYOcup (cdr listaTDAs) posXY)
+       )
+    )
+ )
+
+;Funcion que elimina un TDA de la lista de los TDAs del escenario
+;Entrada: Lista con los TDAs del escenario, lista con posicion X e Y
+;Salida: Lista con los TDAs del escenario actualizada
+(define (eliminarTDA listaTDAs posXY)
+  (if (= (length listaTDAs) 0)
+      '()
+      (if (or (and (gusano? (car listaTDAs)) (= (gusano_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (gusano_getPosY (car listaTDAs)) (ceiling (car (cdr posXY)))))
+              (and (disparo? (car listaTDAs)) (= (disparo_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (disparo_getPosY (car listaTDAs)) (ceiling (car (cdr posXY)))))
+              (and (obstaculo? (car listaTDAs)) (= (obstaculo_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (obstaculo_getPosY (car listaTDAs)) (ceiling (car (cdr posXY)))))
+              (and (suelo? (car listaTDAs)) (= (suelo_getPosX (car listaTDAs)) (ceiling (car posXY)))
+               (= (suelo_getPosY (car listaTDAs)) (ceiling (car (cdr posXY))))))
+          (append (cdr listaTDAs) (eliminarTDA '() posXY))
+          (cons (car listaTDAs) (eliminarTDA (cdr listaTDAs) posXY))
+       )
+   )
+ )
+
+;Funcion que realiza la jugada de la CPU
+;Entrada: Escenario del juego, semilla para generar valores pseudoaleatorios
+;Salida: Escenario del juego actualizado
+(define (jugadaCPU scene seed)
+  (if (> (length (tfCPU scene seed)) 0)
+      (append (list (car scene) (car (cdr scene))) (eliminarTDA (cdr (cdr scene)) (tfCPU scene seed)))
+      scene
+   )
+ )
+
+;Funcion que obtiene una lista con los gusanos del equipo CPU
+;Entrada: Lista con los TDAs del escenario
+;Salida: Lista con los miembros del equipo CPU
+(define (obtenerListMemberCPU listaTDAs)
+  (if (= (length listaTDAs) 0)
+      '()
+      (if (and (gusano? (car listaTDAs)) (= (gusano_getId (car listaTDAs)) 0))
+          (cons (gusano_getIdGusano (car listaTDAs)) (obtenerListMemberCPU (cdr listaTDAs)))
+          (obtenerListMemberCPU (cdr listaTDAs))
+       )
+   )
+ )
+
+;Funcion que obtiene un gusano aleatorio del equipo CPU
+;Entrada: Lista con los miembros del equipo CPU, posicion a obtener de la lista
+;Salida: Numero entero
+(define (obtenerMemberCPU listaMember cant)
+  (if (= cant 0)
+      (car listaMember)
+      (obtenerMemberCPU (cdr listaMember) (- cant 1))
+   )
+ )
+
+;Funcion que realiza el disparo de la CPU
+;Entrada: Escenario del juego, semilla para generar valores pseudoaleatorios
+;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
+(define (tfCPU scene seed)
+  (disparoMRU scene (obtenerMemberCPU (obtenerListMemberCPU (cdr (cdr scene)))
+                                      (getNumRandom seed (length (obtenerListMemberCPU (cdr (cdr scene)))))) 0 (+ (getNumRandom seed 359) 1))
+ )
