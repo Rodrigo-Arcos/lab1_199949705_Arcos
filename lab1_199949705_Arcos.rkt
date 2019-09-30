@@ -1,3 +1,4 @@
+#lang racket
 (define null (list ))
 ;----------------------------------------REPRESENTACION-----------------------------------------------------------
 ;Los siguientes cuatro TDAs son representados en una lista, en la cual cada posicion de esta tiene las siguientes caracteristicas
@@ -504,6 +505,8 @@
 
 ;Se define la constante velocidad para los disparos
 (define velocidad 1)
+;Se define la constante tiempo para los disparos
+(define tiempo 1)
 ;Se define la constante pi para la funcion que convierte grados a radianes
 (define pi 3.141592653589793)
 ;Funcion que convierte de grados a radianes
@@ -772,28 +775,77 @@
 
 ;Función que permite disparar proyectil tomando en consideracion el desplazamiento del jugador, el disparo del proyectil,
 ;y la respuesta de la CPU
-;Entrada: Escenario del juego, personaje elegido, movimiento del personaje (derecha o izquierda), funcion de trayectoria,}
+;Entrada: Escenario del juego, personaje elegido, movimiento del personaje (derecha o izquierda), funcion de trayectoria,
 ;         angulo del disparo, semilla para generar valores pseudoaleatorios 
 ;Salida: Nuevo escenario y actualizacion del juego
 (define (play scene) (lambda (member) (lambda (move) (lambda (tf) (lambda (angle) (lambda (seed)
-  (if (and (checkScene scene) (gusanoExiste? (cdr (cdr scene)) member 1) (> (length (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) 0))
-      (if (> move 0)
-          (if (> (length (tf scene member 1 angle)) 0)
-              (jugadaCPU (append (list 5 5) (eliminarTDA (moverJugadorDer (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
-                               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))) (tf scene member 1 angle))) seed)
-              (jugadaCPU (append (list 5 5) (moverJugadorDer (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
-                               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)))) seed)
-           )
-          (if (> (length (tf scene member id angle)) 0)
-              (jugadaCPU (append (list 5 5) (eliminarTDA (moverJugadorIzq (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
-               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))) (tf scene member 1 angle))) seed)
-              (jugadaCPU (append (list 5 5) (moverJugadorIzq (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
-               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)))) seed)
+  (if (and (checkScene scene) (gusanoExiste? (cdr (cdr scene)) member 1) (= (estadoJuego scene) 2))
+      (if (and (checkScene scene) (= (estadoJuego (realizarPlay scene member move tf angle seed tiempo)) 2))
+          (realizarPlay scene member move tf angle seed tiempo)
+          (if (and (checkScene scene) (= (estadoJuego (realizarPlay scene member move tf angle seed tiempo)) 0))
+              "DEFEAT"
+              (if (and (checkScene scene) (= (estadoJuego (realizarPlay scene member move tf angle seed tiempo)) 1))
+                  "VICTORY"
+                  "DRAW"
+              )
            )
        )
-      null ;sino no es un escenario retornar null
+      null
    )
 ))))))
+
+;Funcion que verifica el estado del juego
+;Entrada: Escenario del juego
+;Salida: Playinig = 2, VICTORY = 1, DEFEAT = 0, y DRAW = 3
+(define (estadoJuego scene)
+  (if (and (gusanoIdExiste? (cdr (cdr scene)) 0) (gusanoIdExiste? (cdr (cdr scene)) 1))
+      2
+      (if (gusanoIdExiste? (cdr (cdr scene)) 0)
+          0
+          (if (gusanoIdExiste? (cdr (cdr scene)) 1)
+              1
+              3
+           )
+       )
+   )
+)
+
+;Funcion que permite realizar las jugadas de la funcion play
+;Entrada: Escenario del juego, personaje elegido, movimiento del personaje (derecha o izquierda), funcion de trayectoria,
+;         angulo del disparo, semilla para generar valores pseudoaleatorios 
+;Salida: Nuevo escenario y actualizacion del juego
+(define (realizarPlay scene member move tf angle seed tiempoNormal)
+  (if (and (checkScene scene) (gusanoExiste? (cdr (cdr scene)) member 1) (> (length (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) 0))
+       (if (> move 0)
+          (if (> (length (tf scene member 1 angle tiempoNormal)) 0)
+              (jugadaCPU (append (list 5 5) (eliminarTDA (moverJugadorDer (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))) (tf scene member 1 angle tiempoNormal))) seed tiempoNormal)
+              (jugadaCPU (append (list 5 5) (moverJugadorDer (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)))) seed tiempoNormal)
+           )
+          (if (> (length (tf scene member 1 angle tiempoNormal)) 0)
+              (jugadaCPU (append (list 5 5) (eliminarTDA (moverJugadorIzq (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))) (tf scene member 1 angle tiempoNormal))) seed tiempoNormal)
+              (jugadaCPU (append (list 5 5) (moverJugadorIzq (cdr (cdr scene)) (car scene) member move (car (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+               (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)))) seed tiempoNormal)
+           )
+       )
+       null
+   )
+)
+
+;Funcion que busca si existe un gusano del algun equipo
+;Entrada: ;Entrada: Lista con los TDAs del escenario, id del gusano
+;Salida: True o False
+(define (gusanoIdExiste? listaTDAs id)
+  (if (= (length listaTDAs) 0)
+      #f
+      (if (and (gusano? (car listaTDAs)) (= (gusano_getId (car listaTDAs)) id))
+          #t
+          (gusanoIdExiste? (cdr listaTDAs) id)
+       )
+   )
+)
 
 ;Funcion que verifica si existe el gusano seleccionado
 ;Entrada: Lista con los TDAs del escenario, gusano a buscar, id del gusano
@@ -903,10 +955,10 @@
       (if (= move 0)
           (ponerGusano (eliminarGusano listaTDAs id member) posXY id member)
           (if (and (verificarPosDistintasXY (- (car posXY) 1) (car (cdr posXY)) (obtenerPosXY listaTDAs))
-                   (verificarPosDistintasXY (- (car PosXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
-              (if (= (length (posXYCaidaGusano (- (car PosXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs))) 0)
+                   (verificarPosDistintasXY (- (car posXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
+              (if (= (length (posXYCaidaGusano (- (car posXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs))) 0)
                   (eliminarGusano listaTDAs id member)
-                  (moverJugadorIzq listaTDAs N member (- move 1) id (posXYCaidaGusano (- (car PosXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
+                  (moverJugadorIzq listaTDAs N member (- move 1) id (posXYCaidaGusano (- (car posXY) 1) (- (car (cdr posXY)) 1) (obtenerPosXY listaTDAs)))
                )
               (if (verificarPosDistintasXY (- (car posXY) 1) (car (cdr posXY)) (obtenerPosXY listaTDAs))
                   (moverJugadorIzq listaTDAs N member (- move 1) id (list (- (car posXY) 1) (car (cdr posXY))))
@@ -920,9 +972,9 @@
 ;Funcion que realiza un disparo en forma de movimiento rectilineo uniforme (MRU)
 ;Entrada: Escenario del juego, gusnao que realiza el disparo, id del gusano, angulo del disparo
 ;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
-(define (disparoMRU scene member id angle)
+(define (disparoMRU scene member id angle tiempo)
   (if (checkScene scene)
-      (realizarDisparo (car scene) (car (cdr scene)) (cdr (cdr scene)) (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member id)) angle)
+      (realizarDisparo (car scene) (car (cdr scene)) (cdr (cdr scene)) (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member id)) angle tiempo)
       '()
    )
  )
@@ -931,18 +983,18 @@
 ;Entrada: Tamaño eje X, tamaño eje Y, lista con los TDAs del escenario, lista con la posicion X e Y del punto de partida del
 ;         disparo, angulo del disparo
 ;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
-(define (realizarDisparo N M listaTDAs posXY angle)
-  (if (or (<= (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad))) 0)
-           (> (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad))) N)
-           (<= (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))) 0)
-           (> (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))) M))
+(define (realizarDisparo N M listaTDAs posXY angle tiempo)
+  (if (or (<= (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))) 0)
+           (> (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))) N)
+           (<= (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo))) 0)
+           (> (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo))) M))
       '()
-      (if (buscarPosXYOcup listaTDAs (list (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad)))
-                                           (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad)))))
-          (list (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad)))
-                (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))))
-          (realizarDisparo N M listaTDAs (list (+ (car posXY) (* (cos (getRad angle)) velocidad))
-                                               (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad))) angle)
+      (if (buscarPosXYOcup listaTDAs (list (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo)))
+                                           (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo)))))
+          (list (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))
+                (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo)))
+          (realizarDisparo N M listaTDAs (list (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))
+                                               (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo))) angle tiempo)
        )
     )
  )
@@ -990,9 +1042,9 @@
 ;Funcion que realiza la jugada de la CPU
 ;Entrada: Escenario del juego, semilla para generar valores pseudoaleatorios
 ;Salida: Escenario del juego actualizado
-(define (jugadaCPU scene seed)
-  (if (> (length (tfCPU scene seed)) 0)
-      (append (list (car scene) (car (cdr scene))) (eliminarTDA (cdr (cdr scene)) (tfCPU scene seed)))
+(define (jugadaCPU scene seed tiempoNormal)
+  (if (and (gusanoIdExiste? (cdr (cdr scene)) 0) (> (length (tfCPU scene seed tiempoNormal)) 0))
+      (append (list (car scene) (car (cdr scene))) (eliminarTDA (cdr (cdr scene)) (tfCPU scene seed tiempoNormal)))
       scene
    )
  )
@@ -1023,7 +1075,77 @@
 ;Funcion que realiza el disparo de la CPU
 ;Entrada: Escenario del juego, semilla para generar valores pseudoaleatorios
 ;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
-(define (tfCPU scene seed)
+(define (tfCPU scene seed tiempoNormal)
   (disparoMRU scene (obtenerMemberCPU (obtenerListMemberCPU (cdr (cdr scene)))
-                                      (getNumRandom seed (length (obtenerListMemberCPU (cdr (cdr scene)))))) 0 (+ (getNumRandom seed 359) 1))
+                                      (getNumRandom seed (length (obtenerListMemberCPU (cdr (cdr scene)))))) 0 (+ (getNumRandom seed 359) 1) tiempoNormal)
  )
+
+;Funcion que crea una lista infinita en donde cada elemento de esta es una actualizacion del disparo de un gusano
+;Entrada: Escenario del juego, personaje elegido, movimiento del personaje (derecha o izquierda), funcion de trayectoria,
+;         frecuencia de muestreo, angulo del disparo, semilla para generar valores pseudoaleatorios 
+;Salida: Lista infinita
+(define (playLazy scene member move tf t angle seed)
+  (actualizandoDisparo scene member move tf (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
+                                            (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle tiempo 0) t)
+                       angle seed t (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
+                                                           (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle
+                                                           tiempo 0) t))
+ )
+
+;Funcion que actualiza el disparo de un gusano
+;Entrada: Escenario del juego, personaje elegido, movimiento del personaje (derecha o izquierda), funcion de trayectoria,
+;         frecuencia de muestreo, angulo del disparo, semilla para generar valores pseudoaleatorios, tiempo maximo de la
+;         frecuencia de muestreo, tiempo de la frecuencia de muestreo
+;Salida: Lista infinita
+(define (actualizandoDisparo scene member move tf t angle seed tiempoMaximo tiempoActualizar)
+  (if (>= t  tiempoMaximo)
+      '()
+      (if (buscarPosXYOcup (cdr (cdr scene )) (actualizarDisparo (cdr (cdr scene))
+                                                                 (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                                                                 angle t))
+          (cons (append (list 5 5) (eliminarTDA (cdr (cdr scene)) (actualizarDisparo (cdr (cdr scene))
+                                                                   (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                                                                   angle t)))
+                (lazy (actualizandoDisparo scene member move tf (+ t tiempoActualizar) angle seed tiempoMaximo
+                                                                                                          tiempoActualizar)))
+          (cons (appendList scene (disparo 2 angle velocidad
+                                           (car (actualizarDisparo (cdr (cdr scene))
+                                                                   (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                                                                   angle t))
+                                           (car (cdr (actualizarDisparo (cdr (cdr scene))
+                                                                        (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
+                                                                        angle t)))))
+                (lazy (actualizandoDisparo scene member move tf (+ t tiempoActualizar) angle seed tiempoMaximo
+                                                                                                          tiempoActualizar)))
+      )
+   )
+ ) 
+
+;Funcion que busca el tiempo de vuelo del disparo realizado por un gusano
+;Entrada: Tamaño eje X, tamaño eje Y, lista con los TDAs del escenario, lista con la posicion X e Y del punto de partida del
+;         disparo, angulo del disparo
+;Salida: Tiempo de vuelo del gusano
+(define (tiempoDisparoVuelo N M listaTDAs posXY angle tiempo cantidad)
+  (if (or (<= (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))) 0)
+           (> (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))) N)
+           (<= (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo))) 0)
+           (> (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo))) M))
+      cantidad
+      (if (buscarPosXYOcup listaTDAs (list (ceiling (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo)))
+                                           (ceiling (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo)))))
+          cantidad
+          (tiempoDisparoVuelo N M listaTDAs (list (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))
+                                               (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo))) angle tiempo (+ cantidad 1))
+       )
+    )
+ )
+
+;Funcion que actualiza el disparo realizado por un gusano
+;Entrada: Tamaño eje X, tamaño eje Y, lista con los TDAs del escenario, lista con la posicion X e Y del punto de partida del
+;         disparo, angulo del disparo
+;Salida: Lista vacia (en caso que el disparo no impacto) o lista con la posicion X e Y del impacto
+(define (actualizarDisparo listaTDAs posXY angle tiempo)
+  (list (+ (car posXY) (* (cos (getRad angle)) velocidad tiempo))
+        (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo)))
+ )
+
