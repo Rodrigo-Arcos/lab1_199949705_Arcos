@@ -1085,11 +1085,17 @@
 ;         frecuencia de muestreo, angulo del disparo, semilla para generar valores pseudoaleatorios 
 ;Salida: Lista infinita
 (define (playLazy scene member move tf t angle seed)
-  (actualizandoDisparo scene member move tf (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
-                                            (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle tiempo 0) t)
-                       angle seed t (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
-                                                           (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle
-                                                           tiempo 0) t))
+  (if (checkScene scene)
+      (if (= (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
+                                    (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle tiempo 0) t) 0)
+          (actualizandoDisparo scene member move tf 1 angle seed t 0)
+          (actualizandoDisparo scene member move tf (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
+                                                                           (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle tiempo 0) t)
+                               angle seed t (/ (tiempoDisparoVuelo (car scene) (car (cdr scene)) (cdr (cdr scene))
+                                                                   (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1)) angle tiempo 0) t))
+       )
+      '()
+    )
  )
 
 ;Funcion que actualiza el disparo de un gusano
@@ -1098,9 +1104,9 @@
 ;         frecuencia de muestreo, tiempo de la frecuencia de muestreo
 ;Salida: Lista infinita
 (define (actualizandoDisparo scene member move tf t angle seed tiempoMaximo tiempoActualizar)
-  (if (>= t  tiempoMaximo)
+  (if (>= t tiempoMaximo)
       '()
-      (if (buscarPosXYOcup (cdr (cdr scene )) (actualizarDisparo (cdr (cdr scene))
+      (if (buscarPosXYOcup (cdr (cdr scene)) (actualizarDisparo (cdr (cdr scene))
                                                                  (cdr (buscarGusanoIdPosXY (cdr (cdr scene)) member 1))
                                                                  angle t))
           (cons (append (list 5 5) (eliminarTDA (cdr (cdr scene)) (actualizarDisparo (cdr (cdr scene))
@@ -1149,3 +1155,126 @@
         (+ (car (cdr posXY)) (* (sin (getRad angle)) velocidad tiempo)))
  )
 
+;Funcion que retorna la representacion del espacio en forma de string
+;Entrada: Escenario del juego
+;Salida: String que tiene que ser pasado a delay para ver de forma correcta
+(define (scene->string scene)
+  (if (checkScene scene)
+      (matrizAString (matrizConTDAs (car scene) (car (cdr scene)) (cdr (cdr scene))
+                                (crearMatriz (car scene) (car (cdr scene)))) "")
+      (matrizAString (matrizConTDAs (car (car scene)) (car (cdr (car scene))) (cdr (cdr (car scene)))
+                                (crearMatriz (car (car scene)) (car (cdr (car scene))))) "")
+   )
+ )
+
+;Funcion que recorre la matriz con los TDAs para converirlos a string
+;Entrada: Matriz con los TDAs, escenario del juego en string
+;Salida: Escenario del juego en string
+(define (matrizAString matrizScene sceneString)
+  (if (= (length matrizScene) 0)
+      sceneString
+      (matrizAString (cdr matrizScene) (matrizAStringFila (car matrizScene) sceneString))
+    )
+ )
+
+;Funcion que recorre las filas de la matriz con los TDAs para converirlos a string
+;Entrada: Fila de la matriz con los TDAs, escenario del juego en string
+;Salida: Escenario del juego en string
+(define (matrizAStringFila matrizSceneFila sceneString)
+  (if (= (length matrizSceneFila) 0)
+       (string-append sceneString "\n")
+       (if (and (gusano? (car matrizSceneFila)) (= (gusano_getId (car matrizSceneFila)) 0))
+           (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "E"))
+           (if (and (gusano? (car matrizSceneFila)) (= (gusano_getId (car matrizSceneFila)) 1))
+               (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "R"))
+               (if (obstaculo? (car matrizSceneFila))
+                   (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "#"))
+                   (if (disparo? (car matrizSceneFila))
+                       (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "o"))
+                       (if (suelo? (car matrizSceneFila))
+                           (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "-"))
+                           (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString " "))
+                        )
+                    )
+                )
+            )
+        )
+    )
+ )
+
+;Funcion que retorna los TDAs del juego en una matriz
+;Entrada: Tamaño eje X, tamao eje Y, lista con los TDAs del escenario, matriz que representa el juego
+;Salida: Matriz que representa el escenario del juego
+(define (matrizConTDAs N M listaTDAs matriz)
+  (if (= (length listaTDAs) 0)
+      matriz
+      (if (gusano? (car listaTDAs))
+          (matrizConTDAs N M (cdr listaTDAs) (ponerTDAenMatriz N M matriz (gusano_getPosX (car listaTDAs))
+                                                               (gusano_getPosY (car listaTDAs)) (car listaTDAs)))
+          (if (obstaculo? (car listaTDAs))
+              (matrizConTDAs N M (cdr listaTDAs) (ponerTDAenMatriz N M matriz (obstaculo_getPosX (car listaTDAs))
+                                                               (obstaculo_getPosY (car listaTDAs)) (car listaTDAs)))
+              (if (disparo? (car listaTDAs))
+                  (matrizConTDAs N M (cdr listaTDAs) (ponerTDAenMatriz N M matriz (disparo_getPosX (car listaTDAs))
+                                                               (disparo_getPosY (car listaTDAs)) (car listaTDAs)))
+                  (if (suelo? (car listaTDAs))
+                      (matrizConTDAs N M (cdr listaTDAs) (ponerTDAenMatriz N M matriz (suelo_getPosX (car listaTDAs))
+                                                               (suelo_getPosY (car listaTDAs)) (car listaTDAs)))
+                      '()
+                   )
+               )
+           )
+       )
+   )
+ )
+
+;Funcion que crea una matriz del tamaño NxM
+;Entrada: Tamaño eje X, tamaño eje Y
+;Salida: Lista de listas (matriz)
+(define (crearMatriz N M)
+  (if (= M 0)
+      '()
+      (cons (crearMatrizFila N) (crearMatriz N (- M 1)))
+   )
+ )
+
+;Funcion que crea las filas de una matriz
+;Entrada: Tamaño eje X
+;Salida: Lista
+(define (crearMatrizFila N)
+  (if (= N 0)
+      '()
+      (cons 0 (crearMatrizFila (- N 1)))
+   ) 
+ )
+
+;Funcion que posiciona un TDA en una matriz
+;Entrada: Tamaño eje X, tamaño eje Y, matriz escenario del juego, posicion X del TDA, posicion Y del TDA
+;         TDA a posicionar en la matriz
+;Salida: Matriz actualizada
+(define (ponerTDAenMatriz N M matriz posX posY tda)
+  (if (= M 0)
+      '()
+      (if (= M (ceiling posY))
+          (cons (ponerTDAenMatrizFila N (car matriz) posX tda 1) (ponerTDAenMatriz N (- M 1) (cdr matriz) posX posY tda))
+          (cons (car matriz) (ponerTDAenMatriz N (- M 1) (cdr matriz) posX posY tda))
+       )
+   )
+ )
+
+;Funcion que posiciona un TDA en una lista
+;Entrada: Tamaño eje X, fila de la matriz escenario del juego, posicion X del TDA, TDA a posicionar en
+;         la lista, auxiliar para recorrer la lista
+;Salida: Lista actualizada
+(define (ponerTDAenMatrizFila N matrizFila posX tda aux)
+  (if (and (= aux (ceiling posX)) (< aux N))
+      (cons tda (ponerTDAenMatrizFila N (cdr matrizFila) posX tda (+ aux 1)))
+      (if (and (= aux (ceiling posX)) (= aux N))
+          (cons tda '())
+          (if (>= aux N)
+              (cons (car matrizFila) '())
+              (cons (car matrizFila) (ponerTDAenMatrizFila N (cdr matrizFila) posX tda (+ aux 1)))
+           )
+       )
+   )
+ )
