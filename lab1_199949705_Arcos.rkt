@@ -819,7 +819,7 @@
        (if (and (gusano? (car matrizSceneFila)) (= (gusano_getId (car matrizSceneFila)) 0))
            (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "E"))
            (if (and (gusano? (car matrizSceneFila)) (= (gusano_getId (car matrizSceneFila)) 1))
-               (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "R"))
+               (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "A"))
                (if (obstaculo? (car matrizSceneFila))
                    (matrizAStringFila (cdr matrizSceneFila) (string-append sceneString "#"))
                    (if (disparo? (car matrizSceneFila))
